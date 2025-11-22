@@ -1,0 +1,13 @@
+CREATE DATABASE online_learning;
+USE online_learning;
+
+CREATE TABLE courses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    teacher VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE USER 'teacher'@'localhost' IDENTIFIED BY '123456';
+GRANT ALL PRIVILEGES ON online_learning.* TO 'teacher'@'localhost';
+FLUSH PRIVILEGES;

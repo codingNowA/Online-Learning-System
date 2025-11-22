@@ -19,7 +19,7 @@ int main() {
 
         try {
             sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
-            std::unique_ptr<sql::Connection> con(driver->connect("tcp://127.0.0.1:3306", "root", "password"));
+            std::unique_ptr<sql::Connection> con(driver->connect("tcp://127.0.0.1:3306", "root", "zhw13890566007"));
             con->setSchema("online_learning");
 
             std::unique_ptr<sql::PreparedStatement> pstmt(
