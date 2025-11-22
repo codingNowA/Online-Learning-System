@@ -6,9 +6,18 @@
 int main() {
     crow::SimpleApp app;
 
+    /*
+        实现功能：创建课程
+        测试方法：用postman模拟post请求，发送JSON
+        {
+            "name":"xxxxx,
+            "teacher":"yyy"
+        }
+    */
+
     // 路由：教师创建课程
     //路由，我理解的就是一个ip+port//后面跟着的路径
-    //一台服务器由ip+port确定，而它又有不同的路由，可以实现不同的功能
+    //一台电脑由ip确定,电脑上的程序又由port确定，而它又有不同的路由，可以实现不同的功能
     CROW_ROUTE(app, "/course/create").methods("POST"_method)
     ([](const crow::request& req) {
         auto body = crow::json::load(req.body);
@@ -39,4 +48,6 @@ int main() {
 
     app.port(18080).multithreaded().run();
     //这个程序负责接待从 18080 端口发过来的请求,相当于是我的设备变成了一个服务器，在不断监听
+
+    /************************************** */
 }
