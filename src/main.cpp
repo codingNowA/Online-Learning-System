@@ -7,7 +7,7 @@ int main() {
     crow::SimpleApp app;
 
     /*
-        实现功能：创建课程,sql创建courses表格
+        实现功能：创建课程,sql修改courses表格
         coder:ZHW
         测试方法：用postman模拟post请求，发送JSON
         {
@@ -53,7 +53,7 @@ int main() {
     /************************************************* */
 
     /*
-        实现功能:学生选课，创建选课表格
+        实现功能:学生选课，修改选课表格enrollments
         coder：ZHW
         测试方法：用postman模拟post请求，发送JSON
         {
@@ -94,6 +94,95 @@ int main() {
 
 
     /****************************************************************** */
+
+    /*
+        实现功能：老师布置作业
+        coder：ZHW
+        测试：postman发送json
+            {
+            "course_id": 1,
+            "title": "C++ Homework 1",
+            "description": "Implement a simple class",
+            "due_date": "2025-12-01"
+            }
+    */
+        CROW_ROUTE(app, "/assignment/create").methods("POST"_method)
+    ([](const crow::request& req) {
+        auto body = crow::json::load(req.body);
+        if (!body) return crow::response(400, "Invalid JSON");
+
+        int courseId = body["course_id"].i();
+        std::string title = body["title"].s();
+        std::string description = body["description"].s();
+        std::string dueDate = body["due_date"].s(); // 格式: YYYY-MM-DD
+
+        try {
+            sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
+            std::unique_ptr<sql::Connection> con(driver->connect("tcp://127.0.0.1:3306", "teacher", "123456"));
+            con->setSchema("online_learning");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement("INSERT INTO assignments(course_id, title, description, due_date) VALUES(?, ?, ?, ?)")
+            );
+            pstmt->setInt(1, courseId);
+            pstmt->setString(2, title);
+            pstmt->setString(3, description);
+            pstmt->setString(4, dueDate);
+            pstmt->execute();
+
+            return crow::response(200, "Assignment created successfully!");
+        } catch (sql::SQLException& e) {
+            return crow::response(500, std::string("Database error: ") + e.what());
+        }
+    });
+    
+    /********************************************** */
+
+    /*
+        实现功能：学生提交作业
+        coder：ZHW
+        测试：POST json
+            {
+            "student": "小明",
+            "content": "Here is my homework solution..."
+            }
+    */
+    CROW_ROUTE(app, "/assignment/<int>/submit").methods("POST"_method)
+    ([](const crow::request& req, int assignmentId) {
+        auto body = crow::json::load(req.body);
+        if (!body) return crow::response(400, "Invalid JSON");
+
+        std::string student = body["student"].s();
+        std::string content = body["content"].s();
+
+        try {
+            sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
+            std::unique_ptr<sql::Connection> con(driver->connect("tcp://127.0.0.1:3306", "teacher", "123456"));
+            con->setSchema("online_learning");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement("INSERT INTO submissions(assignment_id, student, content) VALUES(?, ?, ?)")
+            );
+            pstmt->setInt(1, assignmentId);
+            pstmt->setString(2, student);
+            pstmt->setString(3, content);
+            pstmt->execute();
+
+            return crow::response(200, "Submission successful!");
+        } catch (sql::SQLException& e) {
+            return crow::response(500, std::string("Database error: ") + e.what());
+        }
+    });
+
+
+    /************************************************************** */
+
+    /*
+        实现功能:创建用户
+        coder：ZHW
+    */
+
+    /*******************************/
 
     /*
         下面执行运行操作
