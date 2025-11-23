@@ -19,7 +19,7 @@ void registerCourseRoutes(App& app) {
     // 路由：教师创建课程
     //路由，我理解的就是一个ip:port//后面跟着的路径
     //一台电脑由ip确定,电脑上的程序又由port确定，而它又有不同的路由，可以实现不同的功能
-    CROW_ROUTE(app, "/course/create").methods("POST"_method)
+    CROW_ROUTE(app, "/course/create").methods("POST"_method, "OPTIONS"_method)
     ([](const crow::request& req) {
         auto body = crow::json::load(req.body);
         if (!body) {
@@ -68,7 +68,7 @@ void registerCourseRoutes(App& app) {
         }
     */
 
-    CROW_ROUTE(app, "/course/<int>/enroll").methods("POST"_method)
+    CROW_ROUTE(app, "/course/<int>/enroll").methods("POST"_method, "OPTIONS"_method)
     ([](const crow::request& req, int courseId) {
         //lambda的参数都是从发送请求的URL中得到
         //而"/course/<int>/enroll"更像一个正则匹配的作用，声明截取URL的各部分分别作为指定类型参数

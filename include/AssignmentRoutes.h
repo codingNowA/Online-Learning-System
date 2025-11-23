@@ -22,7 +22,7 @@ void registerAssignmentRoutes(App& app) {
             "due_date": "2025-12-01"
             }
     */
-        CROW_ROUTE(app, "/assignment/create").methods("POST"_method)
+        CROW_ROUTE(app, "/assignment/create").methods("POST"_method, "OPTIONS"_method)
     ([](const crow::request& req) {
         auto body = crow::json::load(req.body);
         if (!body) return crow::response(400, "Invalid JSON");
@@ -72,7 +72,7 @@ void registerAssignmentRoutes(App& app) {
             "content": "Here is my homework solution..."
             }
     */
-    CROW_ROUTE(app, "/assignment/<int>/submit").methods("POST"_method)
+    CROW_ROUTE(app, "/assignment/<int>/submit").methods("POST"_method, "OPTIONS"_method)
     ([](const crow::request& req, int assignmentId) {
         auto body = crow::json::load(req.body);
         if (!body) return crow::response(400, "Invalid JSON");
@@ -111,7 +111,7 @@ void registerAssignmentRoutes(App& app) {
             "comments":"Good job!!!"
         }
     */
-    CROW_ROUTE(app, "/assignment/<int>/grade").methods("POST"_method)
+    CROW_ROUTE(app, "/assignment/<int>/grade").methods("POST"_method, "OPTIONS"_method)
     ([](const crow::request& req, int submissionId) {
         auto body = crow::json::load(req.body);
         if (!body) return crow::response(400, "Invalid JSON");

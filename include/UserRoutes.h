@@ -62,5 +62,49 @@ inline void registerUserRoutes(App& app) {
             return crow::response(500, std::string("Database error: ") + e.what());
         }
     });
+
+
+    /************************** */
+
+    /*
+        实现功能：用户登录
+        coder:ZHW
+        测试：
+        {
+            
+        }
+    */
+
+    CROW_ROUTE(app, "/login").methods("POST"_method, "OPTIONS"_method)
+    ([](const crow::request& req) {
+        auto body = crow::json::load(req.body);
+        if (!body) return crow::response(400, "Invalid JSON");
+
+        std::string username = body["username"].s();
+        std::string password = body["password"].s();
+
+        try {
+            auto con = DBHelper::getConnection();
+            con->setSchema("online_learning");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement("SELECT role FROM users WHERE username=? AND password=?")
+            );
+            pstmt->setString(1, username);
+            pstmt->setString(2, password);
+
+            std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+            if (res->next()) {
+                crow::json::wvalue result;
+                result["message"] = "Login successful";
+                result["role"] = res->getString("role");
+                return crow::response(200, result.dump());
+            } else {
+                return crow::response(401, "Invalid username or password");
+            }
+        } catch (sql::SQLException& e) {
+            return crow::response(500, std::string("Database error: ") + e.what());
+        }
+    });
 }
 
