@@ -62,6 +62,8 @@ CREATE TABLE submissions (
     assignment_id INT NOT NULL,
     student VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
+    grade VARCHAR(255) NULL,
+    comments VARCHAR(255) NULL,
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (assignment_id) REFERENCES assignments(id)
 );

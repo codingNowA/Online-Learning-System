@@ -244,6 +244,60 @@ int main() {
 
     /*******************************/
 
+
+    /*
+        实现功能:教师给作业评级以及做评价
+        coder:ZHW
+        测试：
+        {
+            "teacher":"HW",
+            "grade":"A+",
+            "comments":"Good job!!!"
+        }
+    */
+    CROW_ROUTE(app, "/assignment/<int>/grade").methods("POST"_method)
+    ([](const crow::request& req, int submissionId) {
+        auto body = crow::json::load(req.body);
+        if (!body) return crow::response(400, "Invalid JSON");
+
+        std::string teacher = body["teacher"].s();   // 教师用户名
+        std::string grade = body["grade"].s();         // 级别或分数
+        std::string comments = body["comments"].s();   // 评语
+
+        //检测用户身份 
+        std::string role=UserRoleChecker::getUserRole(teacher); 
+        if(role!="teacher") 
+        { 
+            return crow::response(403,"Only teachers can upgrade submissions"); 
+        }
+
+        try {
+            sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
+            std::unique_ptr<sql::Connection> con(driver->connect("tcp://127.0.0.1:3306", "teacher", "123456"));
+            con->setSchema("online_learning");
+
+            
+
+            // 更新成绩和反馈
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement("UPDATE submissions SET grade=?, comments=? WHERE id=?")
+            );
+            pstmt->setString(1, grade);
+            pstmt->setString(2, comments);
+            pstmt->setInt(3, submissionId);
+            pstmt->execute();
+
+            return crow::response(200, "Grading successful!");
+        } catch (sql::SQLException& e) {
+            return crow::response(500, std::string("Database error: ") + e.what());
+        }
+    });
+
+
+
+
+    /********************************* */
+
     /*
         下面执行运行操作
     */
