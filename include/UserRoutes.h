@@ -3,9 +3,11 @@
 #include "DBHelper.h"
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
+#include "ResponseHelper.h"
 
 // 注册用户相关路由
-inline void registerUserRoutes(crow::SimpleApp& app) {
+template<typename App>//为支持不同中间件，使用模板（如CorsMiddleware）
+inline void registerUserRoutes(App& app) {
     /************************************************************** */
 
     /*
@@ -23,7 +25,7 @@ inline void registerUserRoutes(crow::SimpleApp& app) {
         CROW_ROUTE(app, "/user/create").methods("POST"_method)
     ([](const crow::request& req) {
         auto body = crow::json::load(req.body);
-        if (!body) return crow::response(400, "Invalid JSON");
+        if (!body) return withCORS(400, "Invalid JSON");
 
         std::string username = body["username"].s();
         std::string password = body["password"].s();
@@ -42,9 +44,9 @@ inline void registerUserRoutes(crow::SimpleApp& app) {
             pstmt->setString(3, role);
             pstmt->execute();
 
-            return crow::response(200, "User created successfully!");
+            return withCORS(200, "User created successfully!");
         } catch (sql::SQLException& e) {
-            return crow::response(500, std::string("Database error: ") + e.what());
+            return withCORS(500, std::string("Database error: ") + e.what());
         }
     });
 }

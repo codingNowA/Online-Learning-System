@@ -2,9 +2,11 @@
 #include "crow.h"
 #include "UserRoleChecker.h"
 #include "DBHelper.h"
+#include "ResponseHelper.h"
 
 //实现和课程有关的路由功能
-void registerCourseRoutes(crow::SimpleApp& app) {
+template<typename App>//为支持不同中间件，使用模板（如CorsMiddleware）
+void registerCourseRoutes(App& app) {
     /*
         实现功能：创建课程,sql修改courses表格
         coder:ZHW
@@ -22,7 +24,7 @@ void registerCourseRoutes(crow::SimpleApp& app) {
     ([](const crow::request& req) {
         auto body = crow::json::load(req.body);
         if (!body) {
-            return crow::response(400, "Invalid JSON");
+            return withCORS(400, "Invalid JSON");
         }
 
         std::string courseName = body["name"].s();
@@ -32,7 +34,7 @@ void registerCourseRoutes(crow::SimpleApp& app) {
         std::string role=UserRoleChecker::getUserRole(teacher);
         if(role!="teacher")
         {
-            return crow::response(403,"Only teachers can create courses");
+            return withCORS(403,"Only teachers can create courses");
         }
 
         try {
@@ -48,9 +50,9 @@ void registerCourseRoutes(crow::SimpleApp& app) {
             pstmt->setString(2, teacher);
             pstmt->execute();
 
-            return crow::response(200, "Course created successfully!");
+            return withCORS(200, "Course created successfully!");
         } catch (sql::SQLException& e) {
-            return crow::response(500, std::string("Database error: ") + e.what());
+            return withCORS(500, std::string("Database error: ") + e.what());
         }
     });
 
@@ -73,7 +75,7 @@ void registerCourseRoutes(crow::SimpleApp& app) {
         //而"/course/<int>/enroll"更像一个正则匹配的作用，声明截取URL的各部分分别作为指定类型参数
         auto body = crow::json::load(req.body);
         if (!body) {
-            return crow::response(400, "Invalid JSON");
+            return withCORS(400, "Invalid JSON");
         }
 
         std::string student = body["student"].s();
@@ -82,7 +84,7 @@ void registerCourseRoutes(crow::SimpleApp& app) {
         std::string role=UserRoleChecker::getUserRole(student);
         if(role!="student")
         {
-            return crow::response(403,"Only students can enroll courses");
+            return withCORS(403,"Only students can enroll courses");
         }
 
         try {
@@ -97,9 +99,9 @@ void registerCourseRoutes(crow::SimpleApp& app) {
             pstmt->setString(2, student);
             pstmt->execute();
 
-            return crow::response(200, "Enrollment successful!");
+            return withCORS(200, "Enrollment successful!");
         } catch (sql::SQLException& e) {
-            return crow::response(500, std::string("Database error: ") + e.what());
+            return withCORS(500, std::string("Database error: ") + e.what());
         }
     });
 }

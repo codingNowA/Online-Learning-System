@@ -4,9 +4,11 @@
 #include "DBHelper.h"
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
+#include "ResponseHelper.h"
 
 // 注册作业相关路由
-void registerAssignmentRoutes(crow::SimpleApp& app) {
+template<typename App>//为支持不同中间件，使用模板（如CorsMiddleware）
+void registerAssignmentRoutes(App& app) {
     /****************************************************************** */
 
     /*
@@ -24,7 +26,7 @@ void registerAssignmentRoutes(crow::SimpleApp& app) {
         CROW_ROUTE(app, "/assignment/create").methods("POST"_method)
     ([](const crow::request& req) {
         auto body = crow::json::load(req.body);
-        if (!body) return crow::response(400, "Invalid JSON");
+        if (!body) return withCORS(400, "Invalid JSON");
 
         int courseId = body["course_id"].i();
         std::string teacher=body["teacher"].s();
@@ -36,7 +38,7 @@ void registerAssignmentRoutes(crow::SimpleApp& app) {
         std::string role=UserRoleChecker::getUserRole(teacher);
         if(role!="teacher")
         {
-            return crow::response(403,"Only teachers can post assignments");
+            return withCORS(403,"Only teachers can post assignments");
         }
 
         try {
@@ -54,9 +56,9 @@ void registerAssignmentRoutes(crow::SimpleApp& app) {
             pstmt->setString(5, dueDate);
             pstmt->execute();
 
-            return crow::response(200, "Assignment created successfully!");
+            return withCORS(200, "Assignment created successfully!");
         } catch (sql::SQLException& e) {
-            return crow::response(500, std::string("Database error: ") + e.what());
+            return withCORS(500, std::string("Database error: ") + e.what());
         }
     });
     
@@ -74,7 +76,7 @@ void registerAssignmentRoutes(crow::SimpleApp& app) {
     CROW_ROUTE(app, "/assignment/<int>/submit").methods("POST"_method)
     ([](const crow::request& req, int assignmentId) {
         auto body = crow::json::load(req.body);
-        if (!body) return crow::response(400, "Invalid JSON");
+        if (!body) return withCORS(400, "Invalid JSON");
 
         std::string student = body["student"].s();
         std::string content = body["content"].s();
@@ -92,9 +94,9 @@ void registerAssignmentRoutes(crow::SimpleApp& app) {
             pstmt->setString(3, content);
             pstmt->execute();
 
-            return crow::response(200, "Submission successful!");
+            return withCORS(200, "Submission successful!");
         } catch (sql::SQLException& e) {
-            return crow::response(500, std::string("Database error: ") + e.what());
+            return withCORS(500, std::string("Database error: ") + e.what());
         }
     });
 
@@ -113,7 +115,7 @@ void registerAssignmentRoutes(crow::SimpleApp& app) {
     CROW_ROUTE(app, "/assignment/<int>/grade").methods("POST"_method)
     ([](const crow::request& req, int submissionId) {
         auto body = crow::json::load(req.body);
-        if (!body) return crow::response(400, "Invalid JSON");
+        if (!body) return withCORS(400, "Invalid JSON");
 
         std::string teacher = body["teacher"].s();   // 教师用户名
         std::string grade = body["grade"].s();         // 级别或分数
@@ -123,7 +125,7 @@ void registerAssignmentRoutes(crow::SimpleApp& app) {
         std::string role=UserRoleChecker::getUserRole(teacher); 
         if(role!="teacher") 
         { 
-            return crow::response(403,"Only teachers can upgrade submissions"); 
+            return withCORS(403,"Only teachers can upgrade submissions"); 
         }
 
         try {
@@ -142,9 +144,9 @@ void registerAssignmentRoutes(crow::SimpleApp& app) {
             pstmt->setInt(3, submissionId);
             pstmt->execute();
 
-            return crow::response(200, "Grading successful!");
+            return withCORS(200, "Grading successful!");
         } catch (sql::SQLException& e) {
-            return crow::response(500, std::string("Database error: ") + e.what());
+            return withCORS(500, std::string("Database error: ") + e.what());
         }
     });
 }
