@@ -1,5 +1,16 @@
+/*
+连接数据库由用户teacher 123456进行，此用户非root用户，只能操作 online_learning 数据库
+CREATE USER 'teacher'@'localhost' IDENTIFIED BY '123456';
+GRANT ALL PRIVILEGES ON online_learning.* TO 'teacher'@'localhost';
+FLUSH PRIVILEGES;
+*/
+
+
 存在用户：
-teacher 123456
+HW 123456 teacher
+张老师 123456 teacher
+小明 123456 student
+
 
 
 /*****创建用户****/
@@ -35,10 +46,12 @@ CREATE TABLE enrollments (
 CREATE TABLE assignments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     course_id INT NOT NULL,
+    teacher VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     due_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (teacher) REFERENCES courses(teacher),
     FOREIGN KEY (course_id) REFERENCES courses(id)
 );
 

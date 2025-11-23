@@ -2,6 +2,7 @@
 #include <mysql_driver.h>
 #include <mysql_connection.h>
 #include <cppconn/prepared_statement.h>
+#include "../include/UserRoleChecker.h"
 
 int main() {
     crow::SimpleApp app;
@@ -29,9 +30,16 @@ int main() {
         std::string courseName = body["name"].s();
         std::string teacher = body["teacher"].s();
 
+        //检测用户身份
+        std::string role=UserRoleChecker::getUserRole(teacher);
+        if(role!="teacher")
+        {
+            return crow::response(403,"Only teachers can create courses");
+        }
+
         try {
             sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
-            std::unique_ptr<sql::Connection> con(driver->connect("tcp://127.0.0.1:3306", "root", "zhw13890566007"));
+            std::unique_ptr<sql::Connection> con(driver->connect("tcp://127.0.0.1:3306", "teacher", "123456"));
             //3306是MySQL默认端口
             con->setSchema("online_learning");
 
@@ -71,6 +79,13 @@ int main() {
         }
 
         std::string student = body["student"].s();
+        
+        //检测用户身份
+        std::string role=UserRoleChecker::getUserRole(student);
+        if(role!="student")
+        {
+            return crow::response(403,"Only students can enroll courses");
+        }
 
         try {
             sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
@@ -101,6 +116,7 @@ int main() {
         测试：postman发送json
             {
             "course_id": 1,
+            "teacher":"HW",
             "title": "C++ Homework 1",
             "description": "Implement a simple class",
             "due_date": "2025-12-01"
@@ -112,9 +128,17 @@ int main() {
         if (!body) return crow::response(400, "Invalid JSON");
 
         int courseId = body["course_id"].i();
+        std::string teacher=body["teacher"].s();
         std::string title = body["title"].s();
         std::string description = body["description"].s();
         std::string dueDate = body["due_date"].s(); // 格式: YYYY-MM-DD
+
+        //检测用户身份
+        std::string role=UserRoleChecker::getUserRole(teacher);
+        if(role!="teacher")
+        {
+            return crow::response(403,"Only teachers can post assignments");
+        }
 
         try {
             sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
@@ -122,12 +146,13 @@ int main() {
             con->setSchema("online_learning");
 
             std::unique_ptr<sql::PreparedStatement> pstmt(
-                con->prepareStatement("INSERT INTO assignments(course_id, title, description, due_date) VALUES(?, ?, ?, ?)")
+                con->prepareStatement("INSERT INTO assignments(course_id, teacher, title, description, due_date) VALUES(?, ? , ?, ?, ?)")
             );
             pstmt->setInt(1, courseId);
-            pstmt->setString(2, title);
-            pstmt->setString(3, description);
-            pstmt->setString(4, dueDate);
+            pstmt->setString(2,teacher);
+            pstmt->setString(3, title);
+            pstmt->setString(4, description);
+            pstmt->setString(5, dueDate);
             pstmt->execute();
 
             return crow::response(200, "Assignment created successfully!");
@@ -178,9 +203,44 @@ int main() {
     /************************************************************** */
 
     /*
-        实现功能:创建用户
+        实现功能:创建用户,暂时所有人都可以创建任意用户
         coder：ZHW
+        测试：
+            {
+            "username": "小明",
+            "password": "123456",
+            "role": "student"
+            }
+
     */
+
+        CROW_ROUTE(app, "/user/create").methods("POST"_method)
+    ([](const crow::request& req) {
+        auto body = crow::json::load(req.body);
+        if (!body) return crow::response(400, "Invalid JSON");
+
+        std::string username = body["username"].s();
+        std::string password = body["password"].s();
+        std::string role = body["role"].s(); // "teacher" 或 "student"
+
+        try {
+            sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
+            std::unique_ptr<sql::Connection> con(driver->connect("tcp://127.0.0.1:3306", "teacher", "123456"));
+            con->setSchema("online_learning");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement("INSERT INTO users(username, password, role) VALUES(?, ?, ?)")
+            );
+            pstmt->setString(1, username);
+            pstmt->setString(2, password);
+            pstmt->setString(3, role);
+            pstmt->execute();
+
+            return crow::response(200, "User created successfully!");
+        } catch (sql::SQLException& e) {
+            return crow::response(500, std::string("Database error: ") + e.what());
+        }
+    });
 
     /*******************************/
 
