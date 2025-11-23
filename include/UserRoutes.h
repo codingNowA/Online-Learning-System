@@ -71,7 +71,8 @@ inline void registerUserRoutes(App& app) {
         coder:ZHW
         测试：
         {
-            
+            "username": "小明",
+            "password": "123456"
         }
     */
 

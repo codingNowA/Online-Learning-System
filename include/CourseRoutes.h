@@ -103,4 +103,45 @@ void registerCourseRoutes(App& app) {
             return crow::response(500, std::string("Database error: ") + e.what());
         }
     });
+
+    /**************************************** */
+
+    /*
+        实现功能:学生查看自己选的课程
+        coder：ZHW
+    */
+        CROW_ROUTE(app, "/student/<string>/courses").methods("GET"_method,"OPTIONS"_method)
+    ([](const crow::request& req, const std::string& student) {
+        try {
+            auto con = DBHelper::getConnection();
+            con->setSchema("online_learning");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement(
+                    "SELECT c.id, c.name, c.teacher "
+                    "FROM enrollments e JOIN courses c ON e.course_id=c.id "
+                    "WHERE e.student=?"
+                )
+            );
+            pstmt->setString(1, student);
+            std::unique_ptr<sql::ResultSet> resSet(pstmt->executeQuery());
+
+            crow::json::wvalue result;
+            int idx = 0;
+            while (resSet->next()) {
+                result[idx]["id"] = resSet->getInt("id");
+                result[idx]["name"] = resSet->getString("name");
+                result[idx]["teacher"] = resSet->getString("teacher");
+                idx++;
+            }
+
+            return crow::response(200, result.dump());
+        } catch (sql::SQLException& e) {
+            return crow::response(500, std::string("Database error: ") + e.what());
+        }
+    });
+
+
+    /**************************** */
+
 }

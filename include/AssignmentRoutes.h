@@ -148,4 +148,46 @@ void registerAssignmentRoutes(App& app) {
             return crow::response(500, std::string("Database error: ") + e.what());
         }
     });
+
+
+
+    /******************************** */
+    /*
+        实现功能：学生查看自己提交的作业
+    */
+
+    CROW_ROUTE(app, "/student/<string>/submissions").methods("GET"_method,"OPTIONS"_method)
+    ([](const crow::request& req, const std::string& student) {
+        try {
+            auto con = DBHelper::getConnection();
+            con->setSchema("online_learning");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement(
+                    "SELECT id, assignment_id, content, grade, comments "
+                    "FROM submissions WHERE student=?"
+                )
+            );
+            pstmt->setString(1, student);
+            std::unique_ptr<sql::ResultSet> resSet(pstmt->executeQuery());
+
+            crow::json::wvalue result;
+            int idx = 0;
+            while (resSet->next()) {
+                result[idx]["id"] = resSet->getInt("id");
+                result[idx]["assignment_id"] = resSet->getInt("assignment_id");
+                result[idx]["content"] = resSet->getString("content");
+                result[idx]["grade"] = resSet->getString("grade");
+                result[idx]["comments"] = resSet->getString("comments");
+                idx++;
+            }
+
+            return crow::response(200, result.dump());
+        } catch (sql::SQLException& e) {
+            return crow::response(500, std::string("Database error: ") + e.what());
+        }
+    });
+
+
+
 }
