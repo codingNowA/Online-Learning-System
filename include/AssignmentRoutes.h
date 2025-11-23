@@ -4,6 +4,7 @@
 #include "DBHelper.h"
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
+#include "Utils.h"
 
 // 注册作业相关路由
 template<typename App>//为支持不同中间件，使用模板（如CorsMiddleware）
@@ -68,16 +69,19 @@ void registerAssignmentRoutes(App& app) {
         coder：ZHW
         测试：POST json
             {
-            "student": "小明",
+            "assignment_id":"1",
+            "title":"C++ Homework 1",
             "content": "Here is my homework solution..."
             }
     */
-    CROW_ROUTE(app, "/assignment/<int>/submit").methods("POST"_method, "OPTIONS"_method)
-    ([](const crow::request& req, int assignmentId) {
+    CROW_ROUTE(app, "/assignment/<string>/submit").methods("POST"_method, "OPTIONS"_method)
+    ([](const crow::request& req, const std::string& raw_student) {
+        std::string student=urlDecode(raw_student);
         auto body = crow::json::load(req.body);
         if (!body) return crow::response(400, "Invalid JSON");
 
-        std::string student = body["student"].s();
+        int assignment_id = body["assignment_id"].i();
+        std::string title =body["title"].s();
         std::string content = body["content"].s();
 
         try {
@@ -86,11 +90,12 @@ void registerAssignmentRoutes(App& app) {
             con->setSchema("online_learning");
 
             std::unique_ptr<sql::PreparedStatement> pstmt(
-                con->prepareStatement("INSERT INTO submissions(assignment_id, student, content) VALUES(?, ?, ?)")
+                con->prepareStatement("INSERT INTO submissions(assignment_id, title, student, content) VALUES(?, ?, ?, ?)")
             );
-            pstmt->setInt(1, assignmentId);
-            pstmt->setString(2, student);
-            pstmt->setString(3, content);
+            pstmt->setInt(1, assignment_id);
+            pstmt->setString(2, title);
+            pstmt->setString(3, student);
+            pstmt->setString(4, content);
             pstmt->execute();
 
             return crow::response(200, "Submission successful!");
@@ -157,14 +162,15 @@ void registerAssignmentRoutes(App& app) {
     */
 
     CROW_ROUTE(app, "/student/<string>/submissions").methods("GET"_method,"OPTIONS"_method)
-    ([](const crow::request& req, const std::string& student) {
+    ([](const crow::request& req, const std::string& raw_student) {
+        std::string student = urlDecode(raw_student);
         try {
             auto con = DBHelper::getConnection();
             con->setSchema("online_learning");
 
             std::unique_ptr<sql::PreparedStatement> pstmt(
                 con->prepareStatement(
-                    "SELECT id, assignment_id, content, grade, comments "
+                    "SELECT id, assignment_id, title, content, grade, comments "
                     "FROM submissions WHERE student=?"
                 )
             );
@@ -176,6 +182,7 @@ void registerAssignmentRoutes(App& app) {
             while (resSet->next()) {
                 result[idx]["id"] = resSet->getInt("id");
                 result[idx]["assignment_id"] = resSet->getInt("assignment_id");
+                result[idx]["title"] = resSet->getString("title");
                 result[idx]["content"] = resSet->getString("content");
                 result[idx]["grade"] = resSet->getString("grade");
                 result[idx]["comments"] = resSet->getString("comments");
@@ -188,6 +195,84 @@ void registerAssignmentRoutes(App& app) {
         }
     });
 
+/************************************* */
+    CROW_ROUTE(app, "/student/<string>/pending_assignments").methods("GET"_method,"OPTIONS"_method)
+    ([](const crow::request& req, const std::string& raw_student) {
+        std::string student = urlDecode(raw_student);
+
+        try {
+            auto con = DBHelper::getConnection();
+            con->setSchema("online_learning");
+
+            // 查询学生已选课程的所有作业，排除已提交的
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement(
+                    "SELECT a.id, a.title, a.description, a.due_date, a.course_id "
+                    "FROM assignments a "
+                    "JOIN enrollments e ON a.course_id = e.course_id "
+                    "WHERE e.student=? AND a.id NOT IN (SELECT assignment_id FROM submissions WHERE student=?)"
+                )
+            );
+            pstmt->setString(1, student);
+            pstmt->setString(2, student);
+            std::unique_ptr<sql::ResultSet> resSet(pstmt->executeQuery());
+
+            crow::json::wvalue result;
+            int idx = 0;
+            while (resSet->next()) {
+                result[idx]["id"] = resSet->getInt("id");
+                result[idx]["title"] = resSet->getString("title");
+                result[idx]["description"] = resSet->getString("description");
+                result[idx]["due_date"] = resSet->getString("due_date");
+                result[idx]["course_id"] = resSet->getInt("course_id");
+                idx++;
+            }
+
+            return crow::response(200, result.dump());
+        } catch (sql::SQLException& e) {
+            return crow::response(500, std::string("Database error: ") + e.what());
+        }
+    });
+
+
+
+/************************************ */
+/*
+    实现功能:老师查看自己布置的作业
+    coder:ZHW
+*/
+
+    CROW_ROUTE(app, "/teacher/<string>/assignments").methods("GET"_method,"OPTIONS"_method)
+    ([](const crow::request& req, const std::string& raw_teacher) {
+        std::string teacher = urlDecode(raw_teacher); // 解码路径参数
+
+        try {
+            auto con = DBHelper::getConnection();
+            con->setSchema("online_learning");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement(
+                    "SELECT id, title, description, due_date FROM assignments WHERE teacher=?"
+                )
+            );
+            pstmt->setString(1, teacher);
+            std::unique_ptr<sql::ResultSet> resSet(pstmt->executeQuery());
+
+            crow::json::wvalue result;
+            int idx = 0;
+            while (resSet->next()) {
+                result[idx]["id"] = resSet->getInt("id");
+                result[idx]["title"] = resSet->getString("title");
+                result[idx]["description"] = resSet->getString("description");
+                result[idx]["due_date"] = resSet->getString("due_date");
+                idx++;
+            }
+
+            return crow::response(200, result.dump());
+        } catch (sql::SQLException& e) {
+            return crow::response(500, std::string("Database error: ") + e.what());
+        }
+    });
 
 
 }

@@ -60,6 +60,7 @@ CREATE TABLE assignments (
 CREATE TABLE submissions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     assignment_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
     student VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
     grade VARCHAR(255) NULL,

@@ -22,27 +22,3 @@ int main()
     app.port(18080).multithreaded().run();
     //这个程序负责接待从 18080 端口发过来的请求,相当于是我的设备变成了一个服务器，在不断监听
 }
-
-/*测试
-#include "crow.h"
-#include "../include/CorsMiddleware.h"
-
-int main() {
-    crow::App<CorsMiddleware> app;  // 启用跨域中间件
-
-    // 根路由，方便测试
-    CROW_ROUTE(app, "/").methods("GET"_method)
-    ([](){
-        return crow::response(200, "Crow server is running!");
-    });
-
-    // 一个简单的 POST 路由
-    CROW_ROUTE(app, "/hello").methods("POST"_method)
-    ([](const crow::request& req){
-        return crow::response(200, "Hello World from Crow!");
-    });
-
-    app.port(18080).multithreaded().run();
-}
-
-*/

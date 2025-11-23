@@ -83,6 +83,7 @@ inline void registerUserRoutes(App& app) {
 
         std::string username = body["username"].s();
         std::string password = body["password"].s();
+        std::cout << "登录用户名: " << username << std::endl;
 
         try {
             auto con = DBHelper::getConnection();

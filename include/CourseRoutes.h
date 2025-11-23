@@ -2,6 +2,7 @@
 #include "crow.h"
 #include "UserRoleChecker.h"
 #include "DBHelper.h"
+#include "Utils.h"//实现了urlDecode
 
 //实现和课程有关的路由功能
 template<typename App>//为支持不同中间件，使用模板（如CorsMiddleware）
@@ -111,7 +112,11 @@ void registerCourseRoutes(App& app) {
         coder：ZHW
     */
         CROW_ROUTE(app, "/student/<string>/courses").methods("GET"_method,"OPTIONS"_method)
-    ([](const crow::request& req, const std::string& student) {
+    ([](const crow::request& req, const std::string& raw_student) {
+         std::string student = urlDecode(raw_student);
+         //前端fetch时，发送的HTTP请求，会转化为URL编码，要解码后才能使用
+         //std::cout << "解码后的学生用户名: " << student << std::endl;
+
         try {
             auto con = DBHelper::getConnection();
             con->setSchema("online_learning");
@@ -123,6 +128,7 @@ void registerCourseRoutes(App& app) {
                     "WHERE e.student=?"
                 )
             );
+
             pstmt->setString(1, student);
             std::unique_ptr<sql::ResultSet> resSet(pstmt->executeQuery());
 
@@ -143,5 +149,37 @@ void registerCourseRoutes(App& app) {
 
 
     /**************************** */
+    /*
+        实现功能:老师查看自己任课的课程
+        coder:ZHW
+    */
+        CROW_ROUTE(app, "/teacher/<string>/courses").methods("GET"_method,"OPTIONS"_method)
+    ([](const crow::request& req, const std::string& raw_teacher) {
+        std::string teacher = urlDecode(raw_teacher); // 解码路径参数
+
+        try {
+            auto con = DBHelper::getConnection();
+            con->setSchema("online_learning");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement("SELECT id, name FROM courses WHERE teacher=?")
+            );
+            pstmt->setString(1, teacher);
+            std::unique_ptr<sql::ResultSet> resSet(pstmt->executeQuery());
+
+            crow::json::wvalue result;
+            int idx = 0;
+            while (resSet->next()) {
+                result[idx]["id"] = resSet->getInt("id");
+                result[idx]["name"] = resSet->getString("name");
+                idx++;
+            }
+
+            return crow::response(200, result.dump());
+        } catch (sql::SQLException& e) {
+            return crow::response(500, std::string("Database error: ") + e.what());
+        }
+    });
+
 
 }
