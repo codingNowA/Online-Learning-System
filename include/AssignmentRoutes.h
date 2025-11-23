@@ -42,7 +42,6 @@ void registerAssignmentRoutes(App& app) {
         }
 
         try {
-            sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
             auto con=DBHelper::getConnection();
             con->setSchema("online_learning");
 
@@ -85,7 +84,6 @@ void registerAssignmentRoutes(App& app) {
         std::string content = body["content"].s();
 
         try {
-            sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
             auto con=DBHelper::getConnection();
             con->setSchema("online_learning");
 
@@ -133,7 +131,6 @@ void registerAssignmentRoutes(App& app) {
         }
 
         try {
-            sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
             auto con=DBHelper::getConnection();
             con->setSchema("online_learning");
 
@@ -159,6 +156,7 @@ void registerAssignmentRoutes(App& app) {
     /******************************** */
     /*
         实现功能：学生查看自己提交的作业
+        coder:ZHW
     */
 
     CROW_ROUTE(app, "/student/<string>/submissions").methods("GET"_method,"OPTIONS"_method)
@@ -196,6 +194,10 @@ void registerAssignmentRoutes(App& app) {
     });
 
 /************************************* */
+/*
+    实现功能:学生查看待完成的作业
+    coder:ZHW
+*/
     CROW_ROUTE(app, "/student/<string>/pending_assignments").methods("GET"_method,"OPTIONS"_method)
     ([](const crow::request& req, const std::string& raw_student) {
         std::string student = urlDecode(raw_student);

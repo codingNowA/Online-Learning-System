@@ -1,0 +1,88 @@
+/*
+     这个路由的写法风格不是唯一的，比如/course/<int>/enroll,
+     我完全可以写做/course/enroll,id通过body传。
+     但是在路由里写<int>这种唯一标识符，貌似更规范。
+
+     还有就是因为我没学token(一种前端记录数据到浏览器的方法)，
+     像/assignment/<string>/submit这种路由，以及/assignment/<string>/submit，
+     我想不手动传学生姓名(因为不符合操作逻辑)，但是又没有token，所以我就只能
+     采用在路由里加<string>的方式来传姓名。
+*/
+
+
+
+/course/create
+//教师创建课程
+{
+    "name":"xxxxx",
+    "teacher":"yyy"
+}
+
+
+/course/<int>/enroll   (int 是course_id)
+//学生选课
+{
+    "student":"小明"
+}
+
+
+
+/assignment/create
+//老师布置作业
+{
+    "course_id": 1,
+    "teacher":"HW",
+    "title": "C++ Homework 1",
+    "description": "Implement a simple class",
+    "due_date": "2025-12-01"
+}
+
+
+
+/assignment/<string>/submit   (string是用户自己的用户名)
+//学生提交作业
+{
+    "assignment_id":"1",
+    "title":"C++ Homework 1",
+    "content": "Here is my homework solution...""student": "小明",
+}
+
+
+/assignment/<int>/grade   (int 是作业提交的id)
+//老师批改作业
+{
+    "teacher":"HW",
+    "grade":"A+",
+    "comments":"Good job!!!"
+}
+
+
+
+/student/<string>/submissions   (string是用户自己的用户名)
+//学生查看自己提交的作业
+
+
+/student/<string>/pending_assignments   (string是用户自己的用户名)
+//学生查看自己未完成的作业
+
+
+/teacher/<string>/assignments   (string是用户自己的用户名)
+//老师查看自己布置的作业
+
+
+/user/create
+//创建用户
+{
+    "username": "小明",
+    "password": "123456",
+     "role": "student"
+}
+
+
+
+/login
+//用户登录
+{
+    "username": "小明",
+    "password": "123456"
+}

@@ -1,29 +1,55 @@
-
-
 import React, { useEffect, useState } from "react";
 
 function StudentDashboard({ username }) {
   const [courses, setCourses] = useState([]);
+  const [availableCourses, setAvailableCourses] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [pendingAssignments, setPendingAssignments] = useState([]);
   const [assignmentId, setAssignmentId] = useState("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
-  // 加载课程、已提交作业、未完成作业
+  // 加载已选课程、可选课程、已提交作业、未完成作业
   useEffect(() => {
     fetch(`http://localhost:18080/student/${username}/courses`)
       .then(res => res.json())
-      .then(data => setCourses(Object.values(data || {})));
+      .then(data => setCourses(Array.isArray(data) ? data : Object.values(data || {})));
+
+    fetch(`http://localhost:18080/student/${username}/available_courses`)
+      .then(res => res.json())
+      .then(data => setAvailableCourses(Array.isArray(data) ? data : Object.values(data || {})));
 
     fetch(`http://localhost:18080/student/${username}/submissions`)
       .then(res => res.json())
-      .then(data => setSubmissions(Object.values(data || {})));
+      .then(data => setSubmissions(Array.isArray(data) ? data : Object.values(data || {})));
 
     fetch(`http://localhost:18080/student/${username}/pending_assignments`)
       .then(res => res.json())
-      .then(data => setPendingAssignments(Object.values(data || {})));
+      .then(data => setPendingAssignments(Array.isArray(data) ? data : Object.values(data || {})));
   }, [username]);
+
+  // 学生选课
+  const handleEnroll = (courseId) => {
+    fetch(`http://localhost:18080/course/${courseId}/enroll`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ student: username })
+    })
+      .then(res => res.text())
+      .then(msg => {
+        alert(msg);
+        // 刷新已选课程和可选课程
+        return Promise.all([
+          fetch(`http://localhost:18080/student/${username}/courses`).then(res => res.json()),
+          fetch(`http://localhost:18080/student/${username}/available_courses`).then(res => res.json())
+        ]);
+      })
+      .then(([enrolled, available]) => {
+        setCourses(Array.isArray(enrolled) ? enrolled : Object.values(enrolled || {}));
+        setAvailableCourses(Array.isArray(available) ? available : Object.values(available || {}));
+      })
+      .catch(err => alert("选课失败: " + err));
+  };
 
   // 提交作业
   const handleSubmit = () => {
@@ -46,8 +72,8 @@ function StudentDashboard({ username }) {
         ]);
       })
       .then(([subs, pending]) => {
-        setSubmissions(Object.values(subs || {}));
-        setPendingAssignments(Object.values(pending || {}));
+        setSubmissions(Array.isArray(subs) ? subs : Object.values(subs || {}));
+        setPendingAssignments(Array.isArray(pending) ? pending : Object.values(pending || {}));
       })
       .catch(err => alert("提交失败: " + err));
   };
@@ -58,9 +84,27 @@ function StudentDashboard({ username }) {
 
       <h3>已选课程</h3>
       <ul>
-        {courses.map(c => (
-          <li key={c.id}>{c.name}（教师: {c.teacher}）</li>
-        ))}
+        {courses.length === 0 ? (
+          <li>暂无已选课程</li>
+        ) : (
+          courses.map(c => (
+            <li key={c.id}>{c.name}（教师: {c.teacher}）</li>
+          ))
+        )}
+      </ul>
+
+      <h3>可选课程</h3>
+      <ul>
+        {availableCourses.length === 0 ? (
+          <li>暂无可选课程</li>
+        ) : (
+          availableCourses.map(c => (
+            <li key={c.id}>
+              {c.name}（教师: {c.teacher}）
+              <button onClick={() => handleEnroll(c.id)}>选课</button>
+            </li>
+          ))
+        )}
       </ul>
 
       <h3>已提交的作业</h3>
@@ -83,7 +127,7 @@ function StudentDashboard({ username }) {
         ) : (
           pendingAssignments.map(a => (
             <li key={a.id}>
-              {a.title} | 截止: {a.due_date} | 描述: {a.description}
+              作业 {a.id} - {a.title} | 截止: {a.due_date} | 描述: {a.description}
             </li>
           ))
         )}
@@ -115,3 +159,5 @@ function StudentDashboard({ username }) {
 }
 
 export default StudentDashboard;
+
+

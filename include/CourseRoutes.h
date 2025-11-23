@@ -38,7 +38,6 @@ void registerCourseRoutes(App& app) {
         }
 
         try {
-            sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
             auto con=DBHelper::getConnection();
             //3306是MySQL默认端口
             con->setSchema("online_learning");
@@ -88,7 +87,6 @@ void registerCourseRoutes(App& app) {
         }
 
         try {
-            sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
             auto con=DBHelper::getConnection();
             con->setSchema("online_learning");
 
@@ -138,6 +136,47 @@ void registerCourseRoutes(App& app) {
                 result[idx]["id"] = resSet->getInt("id");
                 result[idx]["name"] = resSet->getString("name");
                 result[idx]["teacher"] = resSet->getString("teacher");
+                idx++;
+            }
+
+            return crow::response(200, result.dump());
+        } catch (sql::SQLException& e) {
+            return crow::response(500, std::string("Database error: ") + e.what());
+        }
+    });
+
+
+
+/*************************************** */
+/*
+    实现的功能:获取当前学生可选的所有课程
+    coder:ZHW
+*/
+        CROW_ROUTE(app, "/student/<string>/available_courses").methods("GET"_method)
+    ([](const crow::request& req, const std::string& raw_student) {
+        std::string student = urlDecode(raw_student);
+        try {
+            auto con = DBHelper::getConnection();
+            con->setSchema("online_learning");
+
+            // 查询所有课程，排除该学生已选的课程
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement(
+                    "SELECT c.id, c.name, c.teacher "
+                    "FROM courses c "
+                    "WHERE c.id NOT IN (SELECT e.course_id FROM enrollments e WHERE e.student=?)"
+                )
+            );
+            pstmt->setString(1, student);
+
+            std::unique_ptr<sql::ResultSet> rs(pstmt->executeQuery());
+
+            crow::json::wvalue result;
+            int idx = 0;
+            while (rs->next()) {
+                result[idx]["id"] = rs->getInt("id");
+                result[idx]["name"] = rs->getString("name");
+                result[idx]["teacher"] = rs->getString("teacher");
                 idx++;
             }
 
