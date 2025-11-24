@@ -1,22 +1,24 @@
 /* App.css */
-.app {
+.App {
   min-height: 100vh;
   background: #f8f9fa;
 }
 
-.app-header {
+.App-header {
   background: white;
   padding: 15px 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid #e1e5e9;
 }
 
-.app-header h1 {
+.App-header h1 {
   margin: 0;
   color: #333;
   font-size: 24px;
+  font-weight: 600;
 }
 
 .user-info {
@@ -24,6 +26,7 @@
   align-items: center;
   gap: 15px;
   color: #666;
+  font-size: 14px;
 }
 
 .logout-button {
@@ -31,14 +34,24 @@
   background: #6c757d;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s ease;
 }
 
 .logout-button:hover {
   background: #545b62;
 }
 
-.app-main {
+.App-main {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* 移除原有的动画样式，保持简洁 */
+.App-logo,
+.App-link {
+  display: none;
 }
