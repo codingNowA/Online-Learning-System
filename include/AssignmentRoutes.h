@@ -277,4 +277,47 @@ void registerAssignmentRoutes(App& app) {
     });
 
 
+/********************************** */
+/*
+    实现功能:老师获取已提交的作业
+    coder:ZHW
+*/
+    CROW_ROUTE(app, "/teacher/<string>/submissions").methods("GET"_method)
+    ([](const crow::request& req, const std::string& raw_teacher) {
+        std::string teacher = urlDecode(raw_teacher);
+        try {
+            auto con = DBHelper::getConnection();
+            con->setSchema("online_learning");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement(
+                    "SELECT s.id, s.assignment_id, s.student, s.title, s.content, s.grade, s.comments "
+                    "FROM submissions s "
+                    "JOIN assignments a ON s.assignment_id = a.id "
+                    "WHERE a.teacher = ?"
+                )
+            );
+            pstmt->setString(1, teacher);
+
+            std::unique_ptr<sql::ResultSet> rs(pstmt->executeQuery());
+
+            crow::json::wvalue result;
+            int idx = 0;
+            while (rs->next()) {
+                result[idx]["id"] = rs->getInt("id");
+                result[idx]["assignment_id"] = rs->getInt("assignment_id");
+                result[idx]["student"] = rs->getString("student");
+                result[idx]["title"] = rs->getString("title");
+                result[idx]["content"] = rs->getString("content");
+                result[idx]["grade"] = rs->getString("grade");
+                result[idx]["comments"] = rs->getString("comments");
+                idx++;
+            }
+
+            return crow::response(200, result.dump());
+        } catch (sql::SQLException& e) {
+            return crow::response(500, std::string("Database error: ") + e.what());
+        }
+    });
+
 }

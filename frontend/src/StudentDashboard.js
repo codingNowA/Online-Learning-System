@@ -28,7 +28,6 @@ function StudentDashboard({ username }) {
       .then(data => setPendingAssignments(Array.isArray(data) ? data : Object.values(data || {})));
   }, [username]);
 
-  // 学生选课
   const handleEnroll = (courseId) => {
     fetch(`http://localhost:18080/course/${courseId}/enroll`, {
       method: "POST",
@@ -38,18 +37,21 @@ function StudentDashboard({ username }) {
       .then(res => res.text())
       .then(msg => {
         alert(msg);
-        // 刷新已选课程和可选课程
+        // 刷新已选课程、可选课程、未完成作业
         return Promise.all([
           fetch(`http://localhost:18080/student/${username}/courses`).then(res => res.json()),
-          fetch(`http://localhost:18080/student/${username}/available_courses`).then(res => res.json())
+          fetch(`http://localhost:18080/student/${username}/available_courses`).then(res => res.json()),
+          fetch(`http://localhost:18080/student/${username}/pending_assignments`).then(res => res.json())
         ]);
       })
-      .then(([enrolled, available]) => {
+      .then(([enrolled, available, pending]) => {
         setCourses(Array.isArray(enrolled) ? enrolled : Object.values(enrolled || {}));
         setAvailableCourses(Array.isArray(available) ? available : Object.values(available || {}));
+        setPendingAssignments(Array.isArray(pending) ? pending : Object.values(pending || {}));
       })
       .catch(err => alert("选课失败: " + err));
   };
+
 
   // 提交作业
   const handleSubmit = () => {
