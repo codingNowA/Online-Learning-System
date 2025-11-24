@@ -1,4 +1,4 @@
-// App.js
+// App.js (优化版)
 import React, { useState } from "react";
 import LoginPage from "./LoginPage";
 import StudentDashboard from "./StudentDashboard";
@@ -21,17 +21,24 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <header className="app-header">
+    <div className="App">
+      <header className="App-header">
         <h1>课程管理系统</h1>
         <div className="user-info">
-          欢迎, {userInfo.username} ({userInfo.role === "student" ? "学生" : "教师"})
-          <button onClick={handleLogout} className="logout-button">退出登录</button>
+          <span>欢迎, {userInfo.username}</span>
+          <span>({userInfo.role === "student" ? "学生" : "教师"})</span>
+          <button onClick={handleLogout} className="logout-button">
+            退出登录
+          </button>
         </div>
       </header>
-      <main className="app-main">
-        {userInfo.role === "student" && <StudentDashboard username={userInfo.username} />}
-        {userInfo.role === "teacher" && <TeacherDashboard username={userInfo.username} />}
+      <main className="App-main">
+        {userInfo.role === "student" && (
+          <StudentDashboard username={userInfo.username} />
+        )}
+        {userInfo.role === "teacher" && (
+          <TeacherDashboard username={userInfo.username} />
+        )}
       </main>
     </div>
   );
