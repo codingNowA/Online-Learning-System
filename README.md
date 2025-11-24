@@ -32,20 +32,20 @@
 ---
 ## 主要文件结构
 .vscode/  ---vscode任务配置文件夹\
-bin/   ---存放可执行文件和动态链接库\
-build/  ---存放中间生成文件\
-frontend/  ---React前端源码\
+bin/      ---存放可执行文件和动态链接库\
+build/    ---存放中间生成文件\
+frontend/ ---React前端源码\
 include/  ---head_only方式的头文件\
-src/  ---main.cpp
+src/      ---main.cpp
 
 ---
 ## include下头文件功能
 - AssignmentRoutes.h  ---实现作业有关功能
-- CourseRoutes.h  ---实现课程有关功能
-- UserRoutes.h  ---实现创建用户（前端暂未实现），用户登录
-- DBHelper.h  ---用于连接数据库
-- UserRoleChecker.h  ---查询用户role（学生还是教师）
-- Utils.h  ---实现URL解码
-- CorsMiddleware.h  ---CROS中间件，实现跨域访问\
+- CourseRoutes.h      ---实现课程有关功能
+- UserRoutes.h        ---实现创建用户（前端暂未实现），用户登录
+- DBHelper.h          ---用于连接数据库
+- UserRoleChecker.h   ---查询用户role（学生还是教师）
+- Utils.h             ---实现URL解码
+- CorsMiddleware.h    ---CROS中间件，实现跨域访问
 
 
