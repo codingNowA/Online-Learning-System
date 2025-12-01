@@ -86,3 +86,46 @@
     "username": "小明",
     "password": "123456"
 }
+
+
+/* ---------------- 课件 / materials 相关路由 ---------------- */
+
+/course/<int>/material/create
+// 教师发布课件（不上传文件，仅保存 metadata 或外部 resource_url）
+// body 示例:
+// {
+//   "teacher": "HW",
+//   "title": "课件标题",
+//   "content": "可选的文本说明",
+//   "resource_url": "https://... 或 /materials/files/xxx.pdf"
+// }
+
+
+/course/<int>/material/upload
+// 教师上传文件（multipart/form-data），后端保存到本地并在 materials 表插入记录
+// form fields:
+// - file: 二进制文件（例如 PDF）
+// - teacher: 教师用户名
+// - title: 课件标题（可选，默认用文件名）
+// 返回 JSON: { "resource_url": "/materials/files/<serverFilename>", "filename": "..." }
+
+
+/course/<int>/materials
+// 获取某课程的所有课件（按时间倒序）
+// 返回示例: [{"id":1,"teacher":"HW","title":"...","content":"","resource_url":"/materials/files/163..._slides.pdf","created_at":"..."}, ...]
+
+
+/teacher/<string>/materials
+// 获取某教师发布的所有课件（按时间倒序）
+
+
+/materials/files/<string>
+// 提供上传文件的下载/访问，后端读取 uploads/materials/<string> 并返回二进制文件（设置 Content-Disposition attachment）
+
+/* 注意：
+ - 上传接口为简单 multipart 解析实现，适用于浏览器 FormData 单文件上传。
+ - resource_url 可以存外链（http(s)）或后端路径 (`/materials/files/<filename>`)，前端会自动拼接为完整 URL。 
+ - 请在数据库中创建好 `materials` 表（见 databaseIGN.txt），并确保后端进程对 `uploads/materials` 具有写权限。
+*/
+
+

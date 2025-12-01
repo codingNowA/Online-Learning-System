@@ -68,3 +68,18 @@ CREATE TABLE submissions (
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (assignment_id) REFERENCES assignments(id)
 );
+
+/*
+    课件表: materials
+    教师可以为课程发布课件，包含文本内容或资源 URL
+*/
+CREATE TABLE materials (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    course_id INT NOT NULL,
+    teacher VARCHAR(255) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    content TEXT,
+    resource_url VARCHAR(1024),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (course_id) REFERENCES courses(id)
+);

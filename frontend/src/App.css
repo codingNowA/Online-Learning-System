@@ -1,57 +1,100 @@
 /* App.css */
+:root {
+  --primary-color: #4a90e2;
+  --bg-color: #f0f2f5;
+  --header-bg: #ffffff;
+  --text-color: #2c3e50;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
 .App {
   min-height: 100vh;
-  background: #f8f9fa;
+  display: flex;
+  flex-direction: column;
 }
 
 .App-header {
-  background: white;
-  padding: 15px 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--header-bg);
+  padding: 0 30px;
+  height: 64px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e1e5e9;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .App-header h1 {
   margin: 0;
-  color: #333;
-  font-size: 24px;
-  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 15px;
-  color: #666;
-  font-size: 14px;
+  gap: 20px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.user-info span {
+  color: #555;
 }
 
 .logout-button {
-  padding: 8px 16px;
-  background: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 6px;
+  padding: 8px 20px;
+  background: transparent;
+  color: #666;
+  border: 1px solid #ddd;
+  border-radius: 20px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .logout-button:hover {
-  background: #545b62;
+  background: #f8f9fa;
+  color: #333;
+  border-color: #ccc;
 }
 
 .App-main {
-  padding: 20px;
+  flex: 1;
+  padding: 30px 20px;
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* 移除原有的动画样式，保持简洁 */
-.App-logo,
-.App-link {
-  display: none;
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1; 
+}
+ 
+::-webkit-scrollbar-thumb {
+  background: #ccc; 
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bbb; 
 }
