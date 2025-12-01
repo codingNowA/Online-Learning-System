@@ -8,6 +8,8 @@ function StudentDashboard({ username }) {
   const [assignmentId, setAssignmentId] = useState("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
 
   // 加载已选课程、可选课程、已提交作业、未完成作业
   useEffect(() => {
@@ -27,6 +29,17 @@ function StudentDashboard({ username }) {
       .then(res => res.json())
       .then(data => setPendingAssignments(Array.isArray(data) ? data : Object.values(data || {})));
   }, [username]);
+
+  const handleViewMaterials = (courseId) => {
+    fetch(`http://localhost:18080/course/${courseId}/materials`)
+      .then(res => res.json())
+      .then(data => {
+        const list = Array.isArray(data) ? data : Object.values(data || {});
+        setSelectedMaterials(list);
+        setSelectedCourseId(courseId);
+      })
+      .catch(err => alert('获取课件失败: ' + err));
+  };
 
   const handleEnroll = (courseId) => {
     fetch(`http://localhost:18080/course/${courseId}/enroll`, {
@@ -90,10 +103,35 @@ function StudentDashboard({ username }) {
           <li>暂无已选课程</li>
         ) : (
           courses.map(c => (
-            <li key={c.id}>{c.name}（教师: {c.teacher}）</li>
+            <li key={c.id}>
+              {c.name}（教师: {c.teacher}）
+              <button onClick={() => handleViewMaterials(c.id)}>查看课件</button>
+            </li>
           ))
         )}
       </ul>
+
+      {/* 显示所选课程的课件 */}
+      {selectedCourseId !== null && (
+        <div>
+          <h3>课程 {selectedCourseId} 的课件</h3>
+          {selectedMaterials.length === 0 ? (
+            <div>暂无课件</div>
+          ) : (
+            <ul>
+              {selectedMaterials.map(m => (
+                <li key={m.id}>
+                  {m.title} | 发布者: {m.teacher} | 发布于: {m.created_at}
+                  <div>{m.content}</div>
+                  {m.resource_url && (
+                    <div>资源: <a href={m.resource_url} target="_blank" rel="noreferrer">{m.resource_url}</a></div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <h3>可选课程</h3>
       <ul>
