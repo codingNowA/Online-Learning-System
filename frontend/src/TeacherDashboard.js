@@ -16,6 +16,7 @@ function TeacherDashboard({ username }) {
   const [materialTitle, setMaterialTitle] = useState("");
   const [materialContent, setMaterialContent] = useState("");
   const [materialURL, setMaterialURL] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
 
   // 加载教师的课程、作业、提交情况
   useEffect(() => {
@@ -99,6 +100,30 @@ function TeacherDashboard({ username }) {
       })
       .then(data => setMaterials(Array.isArray(data) ? data : Object.values(data || {})))
       .catch(err => alert("发布课件失败: " + err));
+  };
+
+  // 上传文件并在后台保存（multipart/form-data）
+  const handleUploadMaterialFile = () => {
+    if (!courseId) { alert('请输入课程ID'); return; }
+    if (!selectedFile) { alert('请选择要上传的文件（例如 PDF）'); return; }
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('teacher', username);
+    formData.append('title', materialTitle || selectedFile.name);
+
+    fetch(`http://localhost:18080/course/${courseId}/material/upload`, {
+      method: 'POST',
+      body: formData
+    })
+      .then(res => res.json())
+      .then(data => {
+        alert('上传成功');
+        // 刷新课件列表
+        return fetch(`http://localhost:18080/teacher/${username}/materials`).then(res => res.json());
+      })
+      .then(list => setMaterials(Array.isArray(list) ? list : Object.values(list || {})))
+      .catch(err => alert('上传失败: ' + err));
   };
 
   // 提交评分（统一用 submission.id）
@@ -209,6 +234,12 @@ function TeacherDashboard({ username }) {
           onChange={e => setMaterialContent(e.target.value)}
         />
         <button onClick={handleCreateMaterial}>发布课件</button>
+
+        <div style={{ marginTop: '8px' }}>
+          <label>或上传文件 (PDF): </label>
+          <input type="file" accept="application/pdf" onChange={e => setSelectedFile(e.target.files[0])} />
+          <button onClick={handleUploadMaterialFile}>上传并发布</button>
+        </div>
       </div>
 
       <h3>已发布课件</h3>
@@ -222,7 +253,7 @@ function TeacherDashboard({ username }) {
               <div>{m.content}</div>
               {m.resource_url && (
                 <div>
-                  资源: <a href={m.resource_url} target="_blank" rel="noreferrer">{m.resource_url}</a>
+                  资源: <a href={m.resource_url.startsWith('http') ? m.resource_url : `http://localhost:18080${m.resource_url}`} target="_blank" rel="noreferrer">{m.resource_url.startsWith('http') ? m.resource_url : `http://localhost:18080${m.resource_url}`}</a>
                 </div>
               )}
             </li>

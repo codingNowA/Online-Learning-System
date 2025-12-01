@@ -124,7 +124,7 @@ function StudentDashboard({ username }) {
                   {m.title} | 发布者: {m.teacher} | 发布于: {m.created_at}
                   <div>{m.content}</div>
                   {m.resource_url && (
-                    <div>资源: <a href={m.resource_url} target="_blank" rel="noreferrer">{m.resource_url}</a></div>
+                    <div>资源: <a href={m.resource_url.startsWith('http') ? m.resource_url : `http://localhost:18080${m.resource_url}`} target="_blank" rel="noreferrer">{m.resource_url.startsWith('http') ? m.resource_url : `http://localhost:18080${m.resource_url}`}</a></div>
                   )}
                 </li>
               ))}
