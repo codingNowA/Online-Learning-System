@@ -1,34 +1,78 @@
+// UserPage.js
 import React, { useState } from "react";
 import axios from "axios";
+import "./FormPage.css";
 
 export default function UserPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("student");
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+    role: "student"
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const createUser = async () => {
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const createUser = async (e) => {
+    e.preventDefault();
+    if (!formData.username || !formData.password) {
+      setMessage("请填写完整信息");
+      return;
+    }
+
+    setLoading(true);
     try {
-      const res = await axios.post("http://localhost:18080/user/create", {
-        username,
-        password,
-        role,
-      });
-      alert(res.data);
+      const res = await axios.post("http://localhost:18080/user/create", formData);
+      setMessage("用户创建成功");
+      setFormData({ username: "", password: "", role: "student" });
     } catch (err) {
-      alert("Error: " + err.message);
+      setMessage("创建失败: " + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div>
-      <h2>创建用户</h2>
-      <input placeholder="用户名" onChange={(e) => setUsername(e.target.value)} />
-      <input placeholder="密码" type="password" onChange={(e) => setPassword(e.target.value)} />
-      <select onChange={(e) => setRole(e.target.value)}>
-        <option value="student">学生</option>
-        <option value="teacher">教师</option>
-      </select>
-      <button onClick={createUser}>创建</button>
+    <div className="page-container">
+      <div className="form-card">
+        <h2>创建用户</h2>
+        {message && <div className="message">{message}</div>}
+        <form onSubmit={createUser}>
+          <div className="form-group">
+            <input
+              placeholder="用户名"
+              value={formData.username}
+              onChange={(e) => handleChange("username", e.target.value)}
+              disabled={loading}
+            />
+          </div>
+          <div className="form-group">
+            <input
+              placeholder="密码"
+              type="password"
+              value={formData.password}
+              onChange={(e) => handleChange("password", e.target.value)}
+              disabled={loading}
+            />
+          </div>
+          <div className="form-group">
+            <select
+              value={formData.role}
+              onChange={(e) => handleChange("role", e.target.value)}
+              disabled={loading}
+            >
+              <option value="student">学生</option>
+              <option value="teacher">教师</option>
+            </select>
+          </div>
+          <button type="submit" disabled={loading} className="submit-button">
+            {loading ? "创建中..." : "创建用户"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
