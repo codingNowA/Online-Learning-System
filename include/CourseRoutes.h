@@ -333,8 +333,14 @@ void registerCourseRoutes(App& app) {
         ssfn << ms << "_" << safeName;
         std::string serverFilename = ssfn.str();
 
-        // 保存目录
-        std::filesystem::path uploadDir = std::filesystem::current_path() / "uploads" / "materials";
+        // 保存目录：统一保存到项目根目录下的 uploads/materials
+        // 逻辑：如果当前路径是 bin 或 src，则向上退一级
+        std::filesystem::path projectRoot = std::filesystem::current_path();
+        if (projectRoot.filename() == "bin" || projectRoot.filename() == "src") {
+            projectRoot = projectRoot.parent_path();
+        }
+        std::filesystem::path uploadDir = projectRoot / "uploads" / "materials";
+        
         std::error_code ec;
         std::filesystem::create_directories(uploadDir, ec);
         if (ec) return crow::response(500, std::string("Failed to create upload directory: ") + ec.message());
@@ -408,7 +414,13 @@ void registerCourseRoutes(App& app) {
             }
         }
 
-        std::filesystem::path filePath = std::filesystem::current_path() / "uploads" / "materials" / serverFilename;
+        // 统一路径逻辑：如果当前路径是 bin 或 src，则向上退一级
+        std::filesystem::path projectRoot = std::filesystem::current_path();
+        if (projectRoot.filename() == "bin" || projectRoot.filename() == "src") {
+            projectRoot = projectRoot.parent_path();
+        }
+        std::filesystem::path filePath = projectRoot / "uploads" / "materials" / serverFilename;
+        
         if (!std::filesystem::exists(filePath)) return crow::response(404, "File not found");
 
         std::ifstream ifs(filePath, std::ios::binary);

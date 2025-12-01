@@ -1,45 +1,61 @@
 import React, { useEffect, useState } from "react";
+import "./Dashboard.css";
 
 function TeacherDashboard({ username }) {
   const [courses, setCourses] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [submissions, setSubmissions] = useState([]);
-
   const [materials, setMaterials] = useState([]);
 
+  // View State
+  const [selectedCourse, setSelectedCourse] = useState(null); // If null, show course list. If set, show course detail.
+  const [activeTab, setActiveTab] = useState('materials'); // 'materials', 'assignments', 'submissions'
+
+  // Form States
   const [courseName, setCourseName] = useState("");
-  const [courseId, setCourseId] = useState("");
+  
+  // Assignment Form
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
 
+  // Material Form
   const [materialTitle, setMaterialTitle] = useState("");
   const [materialContent, setMaterialContent] = useState("");
   const [materialURL, setMaterialURL] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
 
-  // 加载教师的课程、作业、提交情况
+  // 加载数据
+  const fetchData = async () => {
+    try {
+      const [coursesRes, assignmentsRes, subsRes, materialsRes] = await Promise.all([
+        fetch(`http://localhost:18080/teacher/${username}/courses`),
+        fetch(`http://localhost:18080/teacher/${username}/assignments`),
+        fetch(`http://localhost:18080/teacher/${username}/submissions`),
+        fetch(`http://localhost:18080/teacher/${username}/materials`)
+      ]);
+
+      const coursesData = await coursesRes.json();
+      const assignmentsData = await assignmentsRes.json();
+      const subsData = await subsRes.json();
+      const materialsData = await materialsRes.json();
+
+      setCourses(Array.isArray(coursesData) ? coursesData : Object.values(coursesData || {}));
+      setAssignments(Array.isArray(assignmentsData) ? assignmentsData : Object.values(assignmentsData || {}));
+      setSubmissions(Array.isArray(subsData) ? subsData : Object.values(subsData || {}));
+      setMaterials(Array.isArray(materialsData) ? materialsData : Object.values(materialsData || {}));
+    } catch (error) {
+      console.error("Failed to fetch dashboard data", error);
+    }
+  };
+
   useEffect(() => {
-    fetch(`http://localhost:18080/teacher/${username}/courses`)
-      .then(res => res.json())
-      .then(data => setCourses(Array.isArray(data) ? data : Object.values(data || {})));
-
-    fetch(`http://localhost:18080/teacher/${username}/assignments`)
-      .then(res => res.json())
-      .then(data => setAssignments(Array.isArray(data) ? data : Object.values(data || {})));
-
-    fetch(`http://localhost:18080/teacher/${username}/submissions`)
-      .then(res => res.json())
-      .then(data => setSubmissions(Array.isArray(data) ? data : Object.values(data || {})));
-
-    // 加载教师发布的课件
-    fetch(`http://localhost:18080/teacher/${username}/materials`)
-      .then(res => res.json())
-      .then(data => setMaterials(Array.isArray(data) ? data : Object.values(data || {})));
+    fetchData();
   }, [username]);
 
-  // 创建课程
+  // Actions
   const handleCreateCourse = () => {
+    if (!courseName) { alert("请输入课程名称"); return; }
     fetch(`http://localhost:18080/course/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -48,19 +64,19 @@ function TeacherDashboard({ username }) {
       .then(res => res.text())
       .then(msg => {
         alert(msg);
-        return fetch(`http://localhost:18080/teacher/${username}/courses`).then(res => res.json());
+        setCourseName("");
+        fetchData();
       })
-      .then(data => setCourses(Array.isArray(data) ? data : Object.values(data || {})))
       .catch(err => alert("创建课程失败: " + err));
   };
 
-  // 布置新作业
   const handleCreateAssignment = () => {
+    if (!selectedCourse || !title || !dueDate) { alert("请填写完整作业信息"); return; }
     fetch(`http://localhost:18080/assignment/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        course_id: parseInt(courseId),
+        course_id: selectedCourse.id,
         title,
         description,
         due_date: dueDate,
@@ -70,20 +86,17 @@ function TeacherDashboard({ username }) {
       .then(res => res.text())
       .then(msg => {
         alert(msg);
-        return fetch(`http://localhost:18080/teacher/${username}/assignments`).then(res => res.json());
+        setTitle("");
+        setDescription("");
+        setDueDate("");
+        fetchData();
       })
-      .then(data => setAssignments(Array.isArray(data) ? data : Object.values(data || {})))
       .catch(err => alert("布置作业失败: " + err));
   };
 
-  // 发布课件
   const handleCreateMaterial = () => {
-    if (!courseId) {
-      alert('请输入课程ID');
-      return;
-    }
-
-    fetch(`http://localhost:18080/course/${courseId}/material/create`, {
+    if (!selectedCourse) return;
+    fetch(`http://localhost:18080/course/${selectedCourse.id}/material/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -96,15 +109,16 @@ function TeacherDashboard({ username }) {
       .then(res => res.text())
       .then(msg => {
         alert(msg);
-        return fetch(`http://localhost:18080/teacher/${username}/materials`).then(res => res.json());
+        setMaterialTitle("");
+        setMaterialContent("");
+        setMaterialURL("");
+        fetchData();
       })
-      .then(data => setMaterials(Array.isArray(data) ? data : Object.values(data || {})))
       .catch(err => alert("发布课件失败: " + err));
   };
 
-  // 上传文件并在后台保存（multipart/form-data）
   const handleUploadMaterialFile = () => {
-    if (!courseId) { alert('请输入课程ID'); return; }
+    if (!selectedCourse) return;
     if (!selectedFile) { alert('请选择要上传的文件（例如 PDF）'); return; }
 
     const formData = new FormData();
@@ -112,21 +126,20 @@ function TeacherDashboard({ username }) {
     formData.append('teacher', username);
     formData.append('title', materialTitle || selectedFile.name);
 
-    fetch(`http://localhost:18080/course/${courseId}/material/upload`, {
+    fetch(`http://localhost:18080/course/${selectedCourse.id}/material/upload`, {
       method: 'POST',
       body: formData
     })
       .then(res => res.json())
-      .then(data => {
+      .then(() => {
         alert('上传成功');
-        // 刷新课件列表
-        return fetch(`http://localhost:18080/teacher/${username}/materials`).then(res => res.json());
+        setSelectedFile(null);
+        setMaterialTitle("");
+        fetchData();
       })
-      .then(list => setMaterials(Array.isArray(list) ? list : Object.values(list || {})))
       .catch(err => alert('上传失败: ' + err));
   };
 
-  // 提交评分（统一用 submission.id）
   const handleGrade = (submissionId, grade, comments) => {
     fetch(`http://localhost:18080/assignment/${submissionId}/grade`, {
       method: "POST",
@@ -136,159 +149,314 @@ function TeacherDashboard({ username }) {
       .then(res => res.text())
       .then(msg => {
         alert(msg);
-        return fetch(`http://localhost:18080/teacher/${username}/submissions`).then(res => res.json());
+        fetchData();
       })
-      .then(data => setSubmissions(Array.isArray(data) ? data : Object.values(data || {})))
       .catch(err => alert("评分失败: " + err));
   };
 
-  return (
-    <div>
-      <h2>教师主页 - {username}</h2>
+  // --- Render Helpers ---
 
-      <h3>我的课程</h3>
-      <ul>
-        {courses.length === 0 ? (
-          <li>暂无课程</li>
-        ) : (
-          courses.map(c => (
-            <li key={c.id}>{c.name}（课程ID: {c.id}）</li>
-          ))
-        )}
-      </ul>
+  // Filter data for the selected course
+  const currentCourseAssignments = selectedCourse 
+    ? assignments.filter(a => a.course_id === selectedCourse.id) 
+    : [];
+  
+  const currentCourseMaterials = selectedCourse
+    ? materials.filter(m => m.course_id === selectedCourse.id)
+    : [];
 
-      <h3>创建新课程</h3>
-      <div>
-        <input
-          type="text"
-          placeholder="课程名称"
-          value={courseName}
-          onChange={e => setCourseName(e.target.value)}
-        />
-        <button onClick={handleCreateCourse}>创建课程</button>
-      </div>
+  // Submissions need to be filtered by assignments belonging to this course
+  const currentCourseSubmissions = selectedCourse
+    ? submissions.filter(s => {
+        const assignment = assignments.find(a => a.id === s.assignment_id);
+        return assignment && assignment.course_id === selectedCourse.id;
+      })
+    : [];
 
-      <h3>已布置的作业</h3>
-      <ul>
-        {assignments.length === 0 ? (
-          <li>暂无作业</li>
-        ) : (
-          assignments.map(a => (
-            <li key={a.id}>
-              作业 {a.id} - {a.title} | 截止: {a.due_date} | 描述: {a.description}
-            </li>
-          ))
-        )}
-      </ul>
 
-      <h3>布置新作业</h3>
-      <div>
-        <input
-          type="text"
-          placeholder="课程ID"
-          value={courseId}
-          onChange={e => setCourseId(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="作业标题"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-        />
-        <textarea
-          placeholder="作业描述"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-        />
-        <input
-          type="date"
-          value={dueDate}
-          onChange={e => setDueDate(e.target.value)}
-        />
-        <button onClick={handleCreateAssignment}>布置作业</button>
-      </div>
+  // 1. Course List View (Dashboard Home)
+  if (!selectedCourse) {
+    return (
+      <div className="dashboard-container">
+        <header className="dashboard-header">
+          <h2>👨‍🏫 教师工作台 - {username}</h2>
+        </header>
 
-      <h3>发布课件</h3>
-      <div>
-        <input
-          type="text"
-          placeholder="课程ID"
-          value={courseId}
-          onChange={e => setCourseId(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="课件标题"
-          value={materialTitle}
-          onChange={e => setMaterialTitle(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="资源URL (可选)"
-          value={materialURL}
-          onChange={e => setMaterialURL(e.target.value)}
-        />
-        <textarea
-          placeholder="课件内容 (可选)"
-          value={materialContent}
-          onChange={e => setMaterialContent(e.target.value)}
-        />
-        <button onClick={handleCreateMaterial}>发布课件</button>
+        <div className="split-view">
+          <div className="left-column">
+            <section>
+              <h3 className="section-title">📚 我的课程</h3>
+              <div className="card-grid">
+                {courses.length === 0 ? (
+                  <div className="empty-state">暂无课程</div>
+                ) : (
+                  courses.map(c => (
+                    <div className="card" key={c.id}>
+                      <h4>{c.name}</h4>
+                      <div className="card-content">
+                        <p>课程ID: <strong>{c.id}</strong></p>
+                      </div>
+                      <div className="card-actions">
+                        <button className="btn btn-primary" onClick={() => setSelectedCourse(c)}>
+                          管理此课程
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          </div>
 
-        <div style={{ marginTop: '8px' }}>
-          <label>或上传文件 (PDF): </label>
-          <input type="file" accept="application/pdf" onChange={e => setSelectedFile(e.target.files[0])} />
-          <button onClick={handleUploadMaterialFile}>上传并发布</button>
+          <div className="right-column">
+            <section className="form-card">
+              <h3>➕ 创建新课程</h3>
+              <div className="form-group">
+                <input
+                  className="form-control"
+                  type="text"
+                  placeholder="课程名称"
+                  value={courseName}
+                  onChange={e => setCourseName(e.target.value)}
+                />
+              </div>
+              <button className="btn btn-primary" onClick={handleCreateCourse}>创建课程</button>
+            </section>
+          </div>
         </div>
       </div>
+    );
+  }
 
-      <h3>已发布课件</h3>
-      <ul>
-        {materials.length === 0 ? (
-          <li>暂无课件</li>
-        ) : (
-          materials.map(m => (
-            <li key={m.id}>
-              课程ID: {m.course_id} | {m.title} | 发布于: {m.created_at}
-              <div>{m.content}</div>
-              {m.resource_url && (
-                <div>
-                  资源: <a href={m.resource_url.startsWith('http') ? m.resource_url : `http://localhost:18080${m.resource_url}`} target="_blank" rel="noreferrer">{m.resource_url.startsWith('http') ? m.resource_url : `http://localhost:18080${m.resource_url}`}</a>
-                </div>
-              )}
-            </li>
-          ))
-        )}
-      </ul>
+  // 2. Course Detail View
+  return (
+    <div className="dashboard-container">
+      <header className="dashboard-header">
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <button className="btn btn-back" onClick={() => setSelectedCourse(null)}>← 返回列表</button>
+          <h2>正在管理: {selectedCourse.name} <small style={{fontSize: '0.6em', color: '#666'}}>(ID: {selectedCourse.id})</small></h2>
+        </div>
+      </header>
 
-      <h3>学生提交情况</h3>
-      <ul>
-        {submissions.length === 0 ? (
-          <li>暂无提交</li>
-        ) : (
-          submissions.map(s => (
-            <li key={s.id}>
-              学生 {s.student} 提交了作业 {s.assignment_id} - {s.title}: {s.content} 
-              | 成绩: {s.grade || "未评分"} | 评语: {s.comments || "暂无"}
-              <div>
+      <div className="tabs">
+        <button 
+          className={`tab-button ${activeTab === 'materials' ? 'active' : ''}`}
+          onClick={() => setActiveTab('materials')}
+        >
+          📂 课件管理
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'assignments' ? 'active' : ''}`}
+          onClick={() => setActiveTab('assignments')}
+        >
+          📝 作业管理
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'submissions' ? 'active' : ''}`}
+          onClick={() => setActiveTab('submissions')}
+        >
+          ✍️ 批改作业
+        </button>
+      </div>
+
+      {/* Tab Content: Materials */}
+      {activeTab === 'materials' && (
+        <div className="split-view">
+          <div className="left-column">
+            <section className="form-card">
+              <h3>📤 发布新课件</h3>
+              <div className="form-group">
                 <input
+                  className="form-control"
                   type="text"
-                  placeholder="分数（数字或字母）"
-                  onChange={e => s.newGrade = e.target.value}
+                  placeholder="课件标题"
+                  value={materialTitle}
+                  onChange={e => setMaterialTitle(e.target.value)}
                 />
-                <input
-                  type="text"
-                  placeholder="评语"
-                  onChange={e => s.newComments = e.target.value}
-                />
-                <button onClick={() => handleGrade(s.id, s.newGrade, s.newComments)}>
-                  提交评分
-                </button>
               </div>
-            </li>
-          ))
-        )}
-      </ul>
+              
+              <div style={{ marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>方式一：填写内容/链接</label>
+                <div className="form-group">
+                  <input
+                    className="form-control"
+                    type="text"
+                    placeholder="资源URL (可选)"
+                    value={materialURL}
+                    onChange={e => setMaterialURL(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <textarea
+                    className="form-control"
+                    placeholder="课件内容 (可选)"
+                    value={materialContent}
+                    onChange={e => setMaterialContent(e.target.value)}
+                    style={{ minHeight: '60px' }}
+                  />
+                </div>
+                <button className="btn btn-sm btn-primary" onClick={handleCreateMaterial}>发布文本/链接</button>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>方式二：上传文件 (PDF)</label>
+                <div className="file-upload-area">
+                  <input type="file" accept="application/pdf" onChange={e => setSelectedFile(e.target.files[0])} />
+                  <div style={{ marginTop: '10px' }}>
+                    <button className="btn btn-sm btn-success" onClick={handleUploadMaterialFile}>上传并发布</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div className="right-column">
+            <section>
+              <h3 className="section-title">已发布课件</h3>
+              <ul className="list-group">
+                {currentCourseMaterials.length === 0 ? (
+                  <li className="list-item empty-state">本课程暂无课件</li>
+                ) : (
+                  currentCourseMaterials.map(m => (
+                    <li className="list-item" key={m.id}>
+                      <div className="list-item-content">
+                        <strong>{m.title}</strong>
+                        <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                          发布于: {new Date(m.created_at).toLocaleDateString()}
+                        </div>
+                        {m.content && <div style={{ fontSize: '0.9rem', margin: '5px 0' }}>{m.content}</div>}
+                        {m.resource_url && (
+                          <div style={{ marginTop: '5px' }}>
+                            <a 
+                              href={m.resource_url.startsWith('http') ? m.resource_url : `http://localhost:18080${m.resource_url}`} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="btn btn-sm btn-secondary"
+                            >
+                              查看资源
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {/* Tab Content: Assignments */}
+      {activeTab === 'assignments' && (
+        <div className="split-view">
+          <div className="left-column">
+            <section className="form-card">
+              <h3>📝 布置新作业</h3>
+              <div className="form-group">
+                <input
+                  className="form-control"
+                  type="text"
+                  placeholder="作业标题"
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <textarea
+                  className="form-control"
+                  placeholder="作业描述"
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem' }}>截止日期</label>
+                <input
+                  className="form-control"
+                  type="date"
+                  value={dueDate}
+                  onChange={e => setDueDate(e.target.value)}
+                />
+              </div>
+              <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleCreateAssignment}>
+                布置作业
+              </button>
+            </section>
+          </div>
+
+          <div className="right-column">
+            <section>
+              <h3 className="section-title">已布置作业</h3>
+              <ul className="list-group">
+                {currentCourseAssignments.length === 0 ? (
+                  <li className="list-item empty-state">本课程暂无作业</li>
+                ) : (
+                  currentCourseAssignments.map(a => (
+                    <li className="list-item" key={a.id}>
+                      <div className="list-item-content">
+                        <strong>{a.title}</strong>
+                        <div style={{ fontSize: '0.85rem', color: '#666' }}>截止: {a.due_date}</div>
+                        <p>{a.description}</p>
+                      </div>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {/* Tab Content: Submissions */}
+      {activeTab === 'submissions' && (
+        <div>
+          <section>
+            <h3 className="section-title">学生提交列表</h3>
+            <ul className="list-group">
+              {currentCourseSubmissions.length === 0 ? (
+                <li className="list-item empty-state">本课程暂无学生提交</li>
+              ) : (
+                currentCourseSubmissions.map(s => (
+                  <li className="list-item" key={s.id} style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <div style={{ width: '100%', marginBottom: '10px' }}>
+                      <div><strong>学生: {s.student}</strong> - 作业ID: {s.assignment_id}</div>
+                      <div style={{ background: '#f9f9f9', padding: '10px', borderRadius: '5px', margin: '5px 0' }}>
+                        {s.content}
+                      </div>
+                      <div style={{ fontSize: '0.85rem' }}>
+                        当前成绩: <span className={`badge ${s.grade ? 'badge-success' : 'badge-warning'}`}>{s.grade || "未评分"}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                      <input
+                        className="form-control"
+                        style={{ flex: 1 }}
+                        type="text"
+                        placeholder="分数"
+                        onChange={e => s.newGrade = e.target.value}
+                      />
+                      <input
+                        className="form-control"
+                        style={{ flex: 2 }}
+                        type="text"
+                        placeholder="评语"
+                        onChange={e => s.newComments = e.target.value}
+                      />
+                      <button 
+                        className="btn btn-sm btn-primary"
+                        onClick={() => handleGrade(s.id, s.newGrade, s.newComments)}
+                      >
+                        评分
+                      </button>
+                    </div>
+                  </li>
+                ))
+              )}
+            </ul>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
