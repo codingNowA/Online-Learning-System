@@ -254,7 +254,7 @@ void registerAssignmentRoutes(App& app) {
 
             std::unique_ptr<sql::PreparedStatement> pstmt(
                 con->prepareStatement(
-                    "SELECT id, title, description, due_date FROM assignments WHERE teacher=?"
+                    "SELECT id, title, description, due_date, course_id FROM assignments WHERE teacher=?"
                 )
             );
             pstmt->setString(1, teacher);
@@ -267,6 +267,7 @@ void registerAssignmentRoutes(App& app) {
                 result[idx]["title"] = resSet->getString("title");
                 result[idx]["description"] = resSet->getString("description");
                 result[idx]["due_date"] = resSet->getString("due_date");
+                result[idx]["course_id"] = resSet->getInt("course_id");
                 idx++;
             }
 
